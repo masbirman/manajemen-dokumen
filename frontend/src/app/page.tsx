@@ -91,7 +91,7 @@ export default function Home() {
         justifyContent: 'center',
         padding: '1rem'
       }}>
-        <div style={{
+        <div className="login-card-container" style={{
           display: 'flex',
           width: '100%',
           maxWidth: '850px',
@@ -99,16 +99,16 @@ export default function Home() {
           backgroundColor: '#ffffff',
           borderRadius: '16px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          overflow: 'hidden'
+          overflow: 'hidden' // Ensure overflow hidden for border radius
         }}>
           {/* Left Side - Illustration */}
-          <div style={{
+          <div className="login-image-section" style={{
             width: '450px',
             backgroundColor: '#f8fafc',
             position: 'relative',
             height: '100%',
-            display: 'flex' /* Ensure display flex for desktop */
-          }} className="hidden md:flex"> {/* Use Tailwind class for responsiveness if available, fallback to style */}
+            display: 'flex'
+          }}>
             <img 
               src="/login.webp" 
               alt="Document Scanner Illustration" 
@@ -122,7 +122,7 @@ export default function Home() {
           </div>
 
           {/* Right Side - Login Form */}
-          <div style={{
+          <div className="login-form-section" style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
@@ -157,11 +157,21 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Mobile Hide Helper Style */}
+        {/* Responsive Overrides */}
         <style jsx global>{`
           @media (max-width: 768px) {
-            .hidden.md\\:flex {
-              display: none !important;
+            .login-card-container {
+              flex-direction: column !important;
+              height: auto !important;
+              max-width: 100% !important;
+              margin: 1rem !important;
+            }
+            .login-image-section {
+              display: none !important; /* Hide image on mobile */
+            }
+            .login-form-section {
+              padding: 2rem 1.5rem !important;
+              width: 100% !important;
             }
           }
         `}</style>
