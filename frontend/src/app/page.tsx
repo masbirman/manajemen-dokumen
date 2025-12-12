@@ -122,12 +122,7 @@ export default function Home() {
             <img 
               src="/login.webp" 
               alt="Document Scanner Illustration" 
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center'
-              }}
+              className="login-illustration-img"
             />
           </div>
 

@@ -1253,20 +1253,28 @@ html, body {
     max-width: 100% !important;
     margin: 1rem !important;
     border-radius: 12px;
-    overflow: hidden !important; /* Ensure image doesn't overflow corners */
+    overflow: hidden !important;
   }
   
   .login-image-section {
-    display: flex !important; /* Show image */
+    display: flex !important;
     width: 100% !important;
-    height: 200px !important; /* Fixed height for mobile header image */
+    height: 180px !important; /* Slightly reduced height */
+    position: relative !important;
+  }
+
+  .login-illustration-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center; /* Ensure face is visible */
   }
   
   .login-form-section {
-    padding: 2rem 1.5rem !important;
+    padding: 1.5rem 1rem !important; /* Reduce padding significantly */
     width: 100% !important;
     height: auto !important;
-    flex: none !important; /* Prevent shrinking/growing issues */
+    flex: none !important;
   }
 }
 
