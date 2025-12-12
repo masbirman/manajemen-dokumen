@@ -14,6 +14,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@docscanner.local'],
             [
                 'name' => 'Administrator',
+                'username' => 'admin',
                 'password' => Hash::make('password'),
             ]
         );
