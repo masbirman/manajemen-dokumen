@@ -1254,18 +1254,20 @@ html, body {
     max-width: 100% !important;
     margin: 1rem !important;
     border-radius: 12px;
+    overflow: hidden !important; /* Ensure image doesn't overflow corners */
   }
   
   .login-image-section {
-    display: none !important; /* Hide image completely on mobile as requested */
-    width: 0 !important;
-    height: 0 !important;
+    display: flex !important; /* Show image */
+    width: 100% !important;
+    height: 200px !important; /* Fixed height for mobile header image */
   }
   
   .login-form-section {
     padding: 2rem 1.5rem !important;
     width: 100% !important;
     height: auto !important;
+    flex: none !important; /* Prevent shrinking/growing issues */
   }
 }
 
