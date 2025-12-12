@@ -45,8 +45,8 @@ services:
     volumes:
       - ./frontend:/app
       - frontend-node-modules-prod:/app/node_modules
-    # Production command: install dependencies, build, and start
-    command: sh -c "npm install && npm run build && npm start"
+    # Production command: clean cache, install dependencies, build, and start
+    command: sh -c "rm -rf .next && npm install && npm run build && npm start"
     networks:
       - docscanner-network
     environment:
