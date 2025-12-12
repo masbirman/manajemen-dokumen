@@ -1258,19 +1258,22 @@ html, body {
   .login-image-section {
     display: flex !important;
     width: 100% !important;
-    height: 250px !important; /* Adequate height for contain */
-    background-color: #f8fafc !important; /* Ensure background matches image */
+    height: 220px !important; /* Fixed height that looks good */
+    min-height: auto !important;
+    aspect-ratio: auto !important;
+    background-color: #f8fafc !important;
+    position: relative !important;
   }
   
   .login-illustration-img {
     width: 100%;
     height: 100%;
-    object-fit: contain !important; /* CRITICAL: No cropping allowed */
-    object-position: center !important;
+    object-fit: cover !important; /* Fill the width! */
+    object-position: top center !important; /* Keep the face visible! */
   }
   
   .login-form-section {
-    padding: 1.25rem 1rem !important; /* Compact padding */
+    padding: 1.5rem 1.25rem !important; /* Balanced padding */
     width: 100% !important;
     height: auto !important;
     flex: none !important;
@@ -1278,12 +1281,12 @@ html, body {
 
   /* Compact fonts for mobile */
   .login-header {
-    margin-bottom: 1.5rem !important;
+    margin-bottom: 1.25rem !important;
     text-align: center !important;
   }
   
   .login-header h2 {
-    font-size: 1.5rem !important; /* Smaller title */
+    font-size: 1.5rem !important;
     margin-bottom: 0.25rem !important;
   }
   
@@ -1292,12 +1295,13 @@ html, body {
   }
 
   .form-input {
-    padding: 0.75rem 1rem !important; /* Smaller input padding */
+    padding: 0.75rem 1rem !important;
     font-size: 0.9rem !important;
   }
   
   .btn-primary {
     padding: 0.875rem !important;
+    margin-top: 1rem !important;
   }
 }
 
