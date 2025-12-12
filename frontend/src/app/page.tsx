@@ -116,24 +116,9 @@ export default function Home() {
         justifyContent: 'center',
         padding: '1rem'
       }}>
-        <div className="login-card-container" style={{
-          display: 'flex',
-          width: '100%',
-          maxWidth: '850px',
-          height: '480px',
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          overflow: 'hidden' // Ensure overflow hidden for border radius
-        }}>
+        <div className="login-card-container">
           {/* Left Side - Illustration */}
-          <div className="login-image-section" style={{
-            width: '450px',
-            backgroundColor: '#f8fafc',
-            position: 'relative',
-            height: '100%',
-            display: 'flex'
-          }}>
+          <div className="login-image-section">
             <img 
               src="/login.webp" 
               alt="Document Scanner Illustration" 
@@ -147,15 +132,7 @@ export default function Home() {
           </div>
 
           {/* Right Side - Login Form */}
-          <div className="login-form-section" style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            padding: '2.5rem',
-            backgroundColor: '#ffffff',
-            height: '100%'
-          }}>
+          <div className="login-form-section">
             <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
               <h1 style={{
                 fontSize: '1.5rem',

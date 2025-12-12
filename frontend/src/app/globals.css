@@ -1216,27 +1216,57 @@ html, body {
 
 /* Right Side - Form */
 .login-form-wrapper {
+/* Login Page Styles */
+.login-card-container {
+  display: flex;
+  width: 100%;
+  max-width: 850px;
+  height: 480px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.login-image-section {
+  width: 450px;
+  background-color: #f8fafc;
+  position: relative;
+  height: 100%;
+  display: flex;
+}
+
+.login-form-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Mobile Login Responsiveness */
+  justify-content: center;
+  padding: 2.5rem;
+  background-color: #ffffff;
+  height: 100%;
+}
+
+/* Mobile Login Overrides */
 @media (max-width: 768px) {
   .login-card-container {
     flex-direction: column !important;
     height: auto !important;
     max-width: 100% !important;
     margin: 1rem !important;
+    border-radius: 12px;
   }
+  
   .login-image-section {
-    display: none !important;
+    display: none !important; /* Hide image completely on mobile as requested */
+    width: 0 !important;
+    height: 0 !important;
   }
+  
   .login-form-section {
     padding: 2rem 1.5rem !important;
     width: 100% !important;
+    height: auto !important;
   }
-}
-  padding: 3rem 4rem; /* Generous padding */
-  background: #ffffff;
 }
 
 /* Typography & Form Elements */
