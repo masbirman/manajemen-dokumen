@@ -37,21 +37,20 @@ services:
   # Next.js Frontend
   frontend:
     image: node:20-alpine
-    container_name: docscanner-frontend-prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://103.150.227.7:8001
+    container_name: docscanner-frontend
     restart: unless-stopped
-    working_dir: /app
     ports:
-      - "3001:3000" # Changed host port to 3001
-    volumes:
-      - ./frontend:/app
-      - frontend-node-modules-prod:/app/node_modules
-    # Production command: clean cache, install dependencies, build, and start
-    command: sh -c "rm -rf .next && npm install && npm run build && npm start"
+      - "3001:3000" # Changed host port to 3001 from 3000
     networks:
       - docscanner-network
-    environment:
-      # Use the variable from Dokploy/System environment
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    # Removed volumes to ensure we use the baked-in code from Dockerfile
+    # Removed command override as Dockerfile handles startup command
+    # Removed environment variable as it's now passed via build args
 
 networks:
   docscanner-network:
