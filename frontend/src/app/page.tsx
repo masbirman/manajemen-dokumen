@@ -82,26 +82,89 @@ export default function Home() {
   // Show login page if not authenticated
   if (!user) {
     return (
-      <div className="app">
-        <header className="header">
-          <div className="container">
-            <div className="header-content">
-              <h1>📄 Document Scanner - Portal Data</h1>
+      <div style={{
+        minHeight: '100vh',
+        width: '100%',
+        backgroundColor: '#f1f5f9',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          width: '100%',
+          maxWidth: '850px',
+          height: '480px',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          overflow: 'hidden'
+        }}>
+          {/* Left Side - Illustration */}
+          <div style={{
+            width: '450px',
+            backgroundColor: '#f8fafc',
+            position: 'relative',
+            height: '100%',
+            display: 'flex' /* Ensure display flex for desktop */
+          }} className="hidden md:flex"> {/* Use Tailwind class for responsiveness if available, fallback to style */}
+            <img 
+              src="/login.webp" 
+              alt="Document Scanner Illustration" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center'
+              }}
+            />
+          </div>
+
+          {/* Right Side - Login Form */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '2.5rem',
+            backgroundColor: '#ffffff',
+            height: '100%'
+          }}>
+            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+              <h1 style={{
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                color: '#0f172a',
+                marginBottom: '0.5rem'
+              }}>
+                Login
+              </h1>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+                Masuk untuk mengakses data
+              </p>
             </div>
-          </div>
-        </header>
 
-        <main className="container">
-          <div className="card" style={{ marginTop: "2rem" }}>
             <LoginForm onLoginSuccess={handleLoginSuccess} />
+            
+            <p style={{
+              marginTop: 'auto',
+              paddingTop: '1.5rem',
+              textAlign: 'center',
+              color: '#cbd5e1',
+              fontSize: '0.75rem'
+            }}>&copy; 2025 Portal Data - Disdik Sulteng</p>
           </div>
-        </main>
-
-        <footer className="footer">
-          <div className="container">
-            <p>&copy; 2025 Document Scanner - Portal Data</p>
-          </div>
-        </footer>
+        </div>
+        
+        {/* Mobile Hide Helper Style */}
+        <style jsx global>{`
+          @media (max-width: 768px) {
+            .hidden.md\\:flex {
+              display: none !important;
+            }
+          }
+        `}</style>
       </div>
     );
   }
