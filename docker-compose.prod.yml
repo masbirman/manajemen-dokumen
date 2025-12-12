@@ -14,8 +14,7 @@ services:
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - docscanner-network
-    depends_on:
-      - mysql
+    # Removed depends_on mysql since we use external DB
 
   # Nginx Web Server
   nginx:
@@ -32,20 +31,8 @@ services:
     depends_on:
       - app
 
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: docscanner-mysql-prod
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-docscanner}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_USER: ${DB_USERNAME:-docscanner}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-    volumes:
-      - mysql-data-prod:/var/lib/mysql
-    networks:
-      - docscanner-network
+  # MySQL Service REMOVED (Using Dokploy Database Service)
+  # Ensure you fill in DB_HOST, DB_PASSWORD etc in Dokploy Environment
 
   # Next.js Frontend
   frontend:
