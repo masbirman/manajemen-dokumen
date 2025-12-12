@@ -15,8 +15,8 @@ Setelah Service Compose dibuat (beri nama misal `docscanner-prod`):
 1.  **Tab "Source"**:
     *   **Repository URL**: Masukkan URL GitHub repository Anda (pastikan akun GitHub sudah terhubung di Dokploy atau repo bersifat Public).
     *   **Branch**: `main`
-    *   **Compose Path**: `/docker-compose.prod.yml`
-        *   *Note: Saya sudah membuatkan file khusus `docker-compose.prod.yml` di repository yang dioptimalkan untuk production.*
+    *   **Compose Path**: `docker-compose.prod.yml`
+        *   *Note: Hilangkan tanda "/" di depan jika error, cukup nama filenya saja.*
 
 2. **Tab "Environment"**:
     Salin dan paste Variable berikut ke kolom Environment di Dokploy:
@@ -26,7 +26,7 @@ Setelah Service Compose dibuat (beri nama misal `docscanner-prod`):
     APP_ENV=production
     APP_DEBUG=false
     APP_KEY=base64:YOUR_APP_KEY_HERE  <-- (Generate di local: php artisan key:generate --show)
-    APP_URL=http://103.150.227.7:8000
+    APP_URL=http://103.150.227.7:8001     <-- Port 8001
     
     # --- Database Config (Dari Screenshot Dokploy Database) ---
     DB_CONNECTION=mysql
@@ -37,7 +37,7 @@ Setelah Service Compose dibuat (beri nama misal `docscanner-prod`):
     DB_PASSWORD=yhzmhe8wwptdbjus              <-- Password
     
     # --- Frontend Config ---
-    NEXT_PUBLIC_API_URL=http://103.150.227.7:8000
+    NEXT_PUBLIC_API_URL=http://103.150.227.7:8001  <-- Port 8001 (Backend)
     ```
 
     *Catatan: Pastikan Service Database dan Service App Anda berada di "Network" yang sama di Dokploy jika menggunakan Internal Host.*
@@ -47,10 +47,10 @@ Setelah Service Compose dibuat (beri nama misal `docscanner-prod`):
 
 ## 3. Akses Aplikasi
 
-Aplikasi berjalan di server:
+Aplikasi berjalan di server (Port berubah untuk hindari bentrok):
 
-*   **Frontend**: `http://103.150.227.7:3000`
-*   **Backend API**: `http://103.150.227.7:8000`
+*   **Frontend**: `http://103.150.227.7:3001`
+*   **Backend API**: `http://103.150.227.7:8001`
 
 ## 4. Troubleshooting
 
