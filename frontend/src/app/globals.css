@@ -1219,7 +1219,22 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Center form vertically */
+  justify-content: center; /* Mobile Login Responsiveness */
+@media (max-width: 768px) {
+  .login-card-container {
+    flex-direction: column !important;
+    height: auto !important;
+    max-width: 100% !important;
+    margin: 1rem !important;
+  }
+  .login-image-section {
+    display: none !important;
+  }
+  .login-form-section {
+    padding: 2rem 1.5rem !important;
+    width: 100% !important;
+  }
+}
   padding: 3rem 4rem; /* Generous padding */
   background: #ffffff;
 }

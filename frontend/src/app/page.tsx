@@ -28,18 +28,23 @@ export default function Home() {
   // Check if user is logged in
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('auth_token');
-      const savedUser = localStorage.getItem('user');
-      
-      if (token && savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+      try {
+        const token = localStorage.getItem('auth_token');
+        const savedUser = localStorage.getItem('user');
+        
+        if (token && savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+          }
         }
+      } catch (e) {
+        console.error("Auth check failed", e);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     checkAuth();
   }, []);
@@ -71,9 +76,29 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="app">
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
-          <p>Memuat...</p>
+        <div className="loading-screen" style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh', 
+          flexDirection: 'column', 
+          gap: '1rem' 
+        }}>
+          <div className="loading-spinner" style={{
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #3498db',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ fontFamily: 'sans-serif', color: '#666' }}>Memuat...</p>
+          <style jsx>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     );
@@ -156,25 +181,6 @@ export default function Home() {
             }}>&copy; 2025 Portal Data - Disdik Sulteng</p>
           </div>
         </div>
-        
-        {/* Responsive Overrides */}
-        <style jsx global>{`
-          @media (max-width: 768px) {
-            .login-card-container {
-              flex-direction: column !important;
-              height: auto !important;
-              max-width: 100% !important;
-              margin: 1rem !important;
-            }
-            .login-image-section {
-              display: none !important; /* Hide image on mobile */
-            }
-            .login-form-section {
-              padding: 2rem 1.5rem !important;
-              width: 100% !important;
-            }
-          }
-        `}</style>
       </div>
     );
   }
