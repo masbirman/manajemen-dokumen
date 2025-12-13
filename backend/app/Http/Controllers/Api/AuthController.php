@@ -41,7 +41,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('username', $request->username)->first();
+        $user = User::with(['unit', 'pptk'])->where('username', $request->username)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -51,10 +51,25 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        return response()->json([
+        // Get roles and permissions as proper arrays
+        $roles = $user->getRoleNames()->values()->toArray();
+        $permissions = $user->getAllPermissions()->pluck('name')->values()->toArray();
+
+        // Prepare response
+        $response = [
             'user' => $user,
+            'roles' => $roles,
+            'permissions' => $permissions,
             'token' => $token,
-        ]);
+        ];
+
+        // If operator, include unit and pptk data
+        if ($user->hasRole('Operator')) {
+            $response['unit'] = $user->unit;
+            $response['pptk'] = $user->pptk;
+        }
+
+        return response()->json($response);
     }
 
     public function user(Request $request)

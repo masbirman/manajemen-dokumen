@@ -42,7 +42,11 @@ export interface Record {
 export interface User {
   id: number;
   name: string;
-  email: string;
+  username: string;
+  email?: string;
+  avatar_url?: string | null;
+  unit_id?: number;
+  pptk_id?: number;
   roles?: string[];
   permissions?: string[];
 }
@@ -82,7 +86,7 @@ export interface ApiError {
 
 // Auth Types
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -95,6 +99,10 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   user: User;
+  roles: string[];
+  permissions: string[];
+  unit?: Unit;
+  pptk?: Pptk;
   token: string;
 }
 

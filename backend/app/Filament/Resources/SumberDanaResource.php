@@ -2,26 +2,26 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\TypeResource\Pages;
-use App\Models\Type;
+use App\Filament\Resources\SumberDanaResource\Pages;
+use App\Models\SumberDana;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class TypeResource extends Resource
+class SumberDanaResource extends Resource
 {
-    protected static ?string $model = Type::class;
+    protected static ?string $model = SumberDana::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-tag';
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     protected static ?string $navigationGroup = 'Master Data';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
-    protected static ?string $modelLabel = 'Jenis Dokumen';
-    protected static ?string $pluralModelLabel = 'Jenis Dokumen';
+    protected static ?string $modelLabel = 'Sumber Dana';
+    protected static ?string $pluralModelLabel = 'Sumber Dana';
 
     public static function form(Form $form): Form
     {
@@ -30,7 +30,7 @@ class TypeResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255)
-                    ->label('Nama Jenis'),
+                    ->label('Nama Sumber Dana'),
                 Forms\Components\TextInput::make('code')
                     ->maxLength(50)
                     ->unique(ignoreRecord: true)
@@ -48,7 +48,7 @@ class TypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
-                    ->label('Nama Jenis'),
+                    ->label('Nama Sumber Dana'),
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
                     ->label('Kode'),
@@ -83,9 +83,9 @@ class TypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTypes::route('/'),
-            'create' => Pages\CreateType::route('/create'),
-            'edit' => Pages\EditType::route('/{record}/edit'),
+            'index' => Pages\ListSumberDanas::route('/'),
+            'create' => Pages\CreateSumberDana::route('/create'),
+            'edit' => Pages\EditSumberDana::route('/{record}/edit'),
         ];
     }
 }

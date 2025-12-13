@@ -28,22 +28,34 @@ class PptkResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('unit_id')
-                    ->relationship('unit', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload()
-                    ->label('Unit'),
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255)
-                    ->label('Nama PPTK'),
-                Forms\Components\TextInput::make('nip')
-                    ->maxLength(50)
-                    ->label('NIP'),
-                Forms\Components\Toggle::make('is_active')
-                    ->default(true)
-                    ->label('Aktif'),
+                Forms\Components\Section::make('Informasi PPTK')
+                    ->schema([
+                        Forms\Components\FileUpload::make('avatar')
+                            ->label('Foto')
+                            ->image()
+                            ->avatar()
+                            ->directory('pptk-avatars')
+                            ->visibility('public')
+                            ->imageEditor()
+                            ->circleCropper()
+                            ->columnSpanFull(),
+                        Forms\Components\Select::make('unit_id')
+                            ->relationship('unit', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->label('Unit'),
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->maxLength(255)
+                            ->label('Nama PPTK'),
+                        Forms\Components\TextInput::make('nip')
+                            ->maxLength(50)
+                            ->label('NIP'),
+                        Forms\Components\Toggle::make('is_active')
+                            ->default(true)
+                            ->label('Aktif'),
+                    ])->columns(2),
             ]);
     }
 
@@ -51,6 +63,10 @@ class PptkResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('avatar')
+                    ->label('Foto')
+                    ->circular()
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=7F9CF5&background=EBF4FF'),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
@@ -101,3 +117,4 @@ class PptkResource extends Resource
         ];
     }
 }
+

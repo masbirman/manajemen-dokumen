@@ -3,13 +3,19 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Pptk;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -42,7 +48,6 @@ class UserResource extends Resource
                             ->helperText('Huruf, angka, dash, underscore'),
                         Forms\Components\TextInput::make('email')
                             ->email()
-                            ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->label('Email'),
@@ -56,16 +61,67 @@ class UserResource extends Resource
                             ->helperText('Kosongkan jika tidak ingin mengubah password'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Avatar')
+                Forms\Components\Section::make('Role & Avatar')
                     ->schema([
+                        Forms\Components\Select::make('roles')
+                            ->relationship('roles', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->label('Role')
+                            ->helperText('Pilih role untuk user ini')
+                            ->live()
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('unit_id', null);
+                                $set('pptk_id', null);
+                            }),
                         Forms\Components\FileUpload::make('avatar')
                             ->image()
                             ->avatar()
                             ->imageEditor()
                             ->directory('avatars')
-                            ->label('Foto Profil')
-                            ->columnSpanFull(),
-                    ]),
+                            ->label('Foto Profil'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Penugasan Operator')
+                    ->schema([
+                        Forms\Components\Select::make('unit_id')
+                            ->relationship('unit', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->label('Unit')
+                            ->helperText('Pilih unit untuk operator')
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('pptk_id', null)),
+                        Forms\Components\Select::make('pptk_id')
+                            ->label('PPTK')
+                            ->options(function (Get $get) {
+                                $unitId = $get('unit_id');
+                                if (!$unitId) {
+                                    return [];
+                                }
+                                return Pptk::where('unit_id', $unitId)
+                                    ->where('is_active', true)
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->helperText('Pilih PPTK untuk operator (berdasarkan unit yang dipilih)'),
+                    ])
+                    ->columns(2)
+                    ->visible(function (Get $get) {
+                        $roles = $get('roles') ?? [];
+                        if (empty($roles)) {
+                            return false;
+                        }
+                        // Get role IDs that are Operator
+                        $operatorRole = Role::where('name', 'Operator')->first();
+                        if (!$operatorRole) {
+                            return false;
+                        }
+                        // Convert to integers for comparison
+                        $roleIds = array_map('intval', (array) $roles);
+                        return in_array((int) $operatorRole->id, $roleIds);
+                    }),
             ]);
     }
 
@@ -88,20 +144,60 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label('Email'),
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Super Admin' => 'danger',
+                        'Admin' => 'warning',
+                        'Operator' => 'success',
+                        default => 'gray',
+                    })
+                    ->label('Role'),
+                Tables\Columns\TextColumn::make('unit.name')
+                    ->label('Unit')
+                    ->placeholder('-')
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('pptk.name')
+                    ->label('PPTK')
+                    ->placeholder('-')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->label('Dibuat'),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
+                    ->label('Role'),
             ])
             ->actions([
+                Tables\Actions\Action::make('resetPassword')
+                    ->label('Reset Password')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Password')
+                    ->modalDescription('Password akan di-reset ke password acak dan ditampilkan sekali. Pastikan untuk menyalin password baru.')
+                    ->action(function (User $record) {
+                        $newPassword = Str::random(12);
+                        $record->update(['password' => Hash::make($newPassword)]);
+                        
+                        Notification::make()
+                            ->title('Password berhasil di-reset')
+                            ->body("Password baru: **{$newPassword}**")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->before(function (User $record) {
                         if (User::count() <= 1) {
                             throw new \Exception('Tidak dapat menghapus user terakhir');
+                        }
+                        if ($record->hasRole('Super Admin') && User::role('Super Admin')->count() <= 1) {
+                            throw new \Exception('Tidak dapat menghapus Super Admin terakhir');
                         }
                     }),
             ])
@@ -128,3 +224,4 @@ class UserResource extends Resource
         ];
     }
 }
+

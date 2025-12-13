@@ -11,7 +11,7 @@ class RecordController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Record::with(['unit:id,name', 'type:id,name', 'pptk:id,name'])
+        $query = Record::with(['unit:id,name', 'type:id,name', 'pptk:id,name', 'creator:id,name,username'])
                        ->orderBy('created_at', 'desc');
 
         // Filters

@@ -4,8 +4,30 @@ import { useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+interface Unit {
+  id: number;
+  name: string;
+}
+
+interface Pptk {
+  id: number;
+  name: string;
+  unit_id: number;
+}
+
+interface UserWithRoles {
+  id: number;
+  name: string;
+  username: string;
+  avatar_url: string | null;
+  roles: string[];
+  permissions: string[];
+  unit?: Unit | null;
+  pptk?: Pptk | null;
+}
+
 interface LoginFormProps {
-  onLoginSuccess: (user: any, token: string) => void;
+  onLoginSuccess: (user: UserWithRoles) => void;
 }
 
 export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
@@ -36,11 +58,20 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         throw new Error(data.message || data.errors?.username?.[0] || 'Login gagal');
       }
 
-      // Save token to localStorage
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Build user object with roles and permissions
+      const userData: UserWithRoles = {
+        ...data.user,
+        roles: data.roles || [],
+        permissions: data.permissions || [],
+        unit: data.unit || null,
+        pptk: data.pptk || null,
+      };
 
-      onLoginSuccess(data.user, data.token);
+      // Save to localStorage
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      onLoginSuccess(userData);
     } catch (err: any) {
       setError(err.message || 'Login gagal');
     } finally {

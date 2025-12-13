@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 
 class Pptk extends Model
 {
@@ -14,6 +16,7 @@ class Pptk extends Model
     protected $fillable = [
         'name',
         'nip',
+        'avatar',
         'unit_id',
         'is_active',
     ];
@@ -21,6 +24,8 @@ class Pptk extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected $appends = ['avatar_url'];
 
     public function unit(): BelongsTo
     {
@@ -31,4 +36,17 @@ class Pptk extends Model
     {
         return $this->hasMany(Record::class);
     }
+
+    /**
+     * Get the avatar URL.
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->avatar 
+                ? Storage::url($this->avatar)
+                : null,
+        );
+    }
 }
+

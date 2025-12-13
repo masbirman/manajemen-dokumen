@@ -105,11 +105,16 @@ class RecordResource extends Resource
                     ->limit(50)
                     ->toggleable()
                     ->label('Uraian'),
-                Tables\Columns\IconColumn::make('pdf_path')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-document')
-                    ->falseIcon('heroicon-o-x-mark')
-                    ->label('PDF'),
+                Tables\Columns\TextColumn::make('pdf_path')
+                    ->label('PDF')
+                    ->formatStateUsing(fn ($state) => $state ? '📄 PDF' : '-')
+                    ->url(fn ($record) => $record->pdf_url, shouldOpenInNewTab: true)
+                    ->color('primary'),
+                Tables\Columns\TextColumn::make('creator.name')
+                    ->sortable()
+                    ->searchable()
+                    ->label('Operator')
+                    ->default('-'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('d M Y H:i')
                     ->sortable()
@@ -122,8 +127,17 @@ class RecordResource extends Resource
                 Tables\Filters\SelectFilter::make('type_id')
                     ->relationship('type', 'name')
                     ->label('Jenis'),
+                Tables\Filters\SelectFilter::make('created_by')
+                    ->relationship('creator', 'name')
+                    ->label('Operator'),
             ])
             ->actions([
+                Tables\Actions\Action::make('preview_pdf')
+                    ->label('Preview')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => $record->pdf_url, shouldOpenInNewTab: true)
+                    ->visible(fn ($record) => $record->pdf_path !== null)
+                    ->color('info'),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

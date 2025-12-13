@@ -5,15 +5,17 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +26,8 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'avatar',
+        'unit_id',
+        'pptk_id',
     ];
 
     /**
@@ -69,6 +73,23 @@ class User extends Authenticatable implements FilamentUser
     {
         return true; // All users can access admin panel for now
     }
+
+    /**
+     * Get the unit for operator.
+     */
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    /**
+     * Get the pptk for operator.
+     */
+    public function pptk(): BelongsTo
+    {
+        return $this->belongsTo(Pptk::class);
+    }
 }
+
 
 

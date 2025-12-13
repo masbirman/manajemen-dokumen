@@ -4,27 +4,22 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [],
   },
-  // Ignore typescript and eslint errors during build to ensure deployment succeeds
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Enable CORS for API requests
-  async headers() {
+  // Proxy API requests to backend - eliminates CORS
+  async rewrites() {
     return [
       {
-        source: '/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
-        ],
+        source: '/api/:path*',
+        destination: 'http://nginx:80/api/:path*',
       },
     ];
   },
 };
 
 module.exports = nextConfig;
+

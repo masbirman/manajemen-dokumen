@@ -42,13 +42,16 @@ class ApiClient {
   ): Promise<T> {
     const url = `${API_BASE_URL}/api${endpoint}`;
 
+    // Always read fresh token from localStorage
+    const currentToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : this.token;
+
     const headers: Record<string, string> = {
       Accept: 'application/json',
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
     }
 
     // Don't set Content-Type for FormData
