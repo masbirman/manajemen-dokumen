@@ -2,8 +2,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
+COPY next.config.js ./
+
+# Install dependencies
 RUN npm install
 
 # Copy source code
@@ -31,3 +35,4 @@ COPY --from=builder /app/public ./public
 # Start the application
 EXPOSE 3000
 CMD ["node", "server.js"]
+
