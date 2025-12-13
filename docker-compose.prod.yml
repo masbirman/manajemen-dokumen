@@ -13,49 +13,50 @@ services:
       - ./backend:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
-      - docscanner-network
+      - dokploy-network
     # Removed depends_on mysql since we use external DB
 
-  # Nginx Web Server
+  # Nginx Web Server for Laravel Backend
   nginx:
     image: nginx:alpine
     container_name: docscanner-nginx-prod
     restart: unless-stopped
-    ports:
-      - "8001:80" # Changed host port to 8001
     volumes:
       - ./backend:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     networks:
-      - docscanner-network
+      - dokploy-network
     depends_on:
       - app
-
-  # MySQL Service REMOVED (Using Dokploy Database Service)
-  # Ensure you fill in DB_HOST, DB_PASSWORD etc in Dokploy Environment
+    labels:
+      - "traefik.enable=true"
+      # Backend API routes
+      - "traefik.http.routers.docscanner-api.rule=Host(`manajemen.keudisdiksulteng.web.id`) && (PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/storage`) || PathPrefix(`/sanctum`) || PathPrefix(`/livewire`))"
+      - "traefik.http.routers.docscanner-api.entrypoints=websecure"
+      - "traefik.http.routers.docscanner-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.docscanner-api.priority=100"
+      - "traefik.http.services.docscanner-api.loadbalancer.server.port=80"
 
   # Next.js Frontend
   frontend:
-    image: node:20-alpine
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://103.235.75.221:8001}
-    container_name: docscanner-frontend
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://manajemen.keudisdiksulteng.web.id}
+    container_name: docscanner-frontend-prod
     restart: unless-stopped
-    ports:
-      - "3001:3000" # Changed host port to 3001 from 3000
     networks:
-      - docscanner-network
-    # Removed volumes to ensure we use the baked-in code from Dockerfile
-    # Removed command override as Dockerfile handles startup command
-    # Removed environment variable as it's now passed via build args
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      # Frontend routes (catch-all, lower priority)
+      - "traefik.http.routers.docscanner-frontend.rule=Host(`manajemen.keudisdiksulteng.web.id`)"
+      - "traefik.http.routers.docscanner-frontend.entrypoints=websecure"
+      - "traefik.http.routers.docscanner-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.docscanner-frontend.priority=1"
+      - "traefik.http.services.docscanner-frontend.loadbalancer.server.port=3000"
 
 networks:
-  docscanner-network:
-    driver: bridge
-
-volumes:
-  mysql-data-prod:
-  frontend-node-modules-prod:
+  dokploy-network:
+    external: true
