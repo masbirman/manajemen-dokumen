@@ -33,7 +33,7 @@ services:
       - app
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.docscanner-api.rule=Host(`manajemen.keudisdiksulteng.web.id`) && (PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/storage`) || PathPrefix(`/sanctum`) || PathPrefix(`/livewire`) || PathPrefix(`/auto-login`))"
+      - "traefik.http.routers.docscanner-api.rule=Host(`manajemen.keudisdiksulteng.web.id`) && (PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/storage`) || PathPrefix(`/sanctum`) || PathPrefix(`/livewire`) || PathPrefix(`/auto-login`) || PathPrefix(`/css`) || PathPrefix(`/js`))"
       - "traefik.http.routers.docscanner-api.entrypoints=websecure"
       - "traefik.http.routers.docscanner-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.docscanner-api.priority=100"
