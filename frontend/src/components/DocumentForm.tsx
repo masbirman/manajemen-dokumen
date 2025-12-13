@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import api from "@/lib/api";
+import api from "../lib/api";
 
 // Dynamically import scanner to avoid SSR issues with webcam
 const DocumentScanner = dynamic(() => import("./DocumentScanner"), {
