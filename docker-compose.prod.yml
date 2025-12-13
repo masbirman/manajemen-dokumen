@@ -41,7 +41,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://103.150.227.7:8001
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://103.235.75.221:8001}
     container_name: docscanner-frontend
     restart: unless-stopped
     ports:
