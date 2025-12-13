@@ -2,16 +2,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy all source files first
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY next.config.js ./
+COPY next-env.d.ts ./
+COPY src ./src
+COPY public ./public
 
 # Install dependencies
-RUN npm install
-
-# Copy source code
-COPY . .
+RUN npm ci
 
 # Build args
 ARG NEXT_PUBLIC_API_URL
