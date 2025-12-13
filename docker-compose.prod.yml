@@ -12,6 +12,7 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./backend/.env.production:/var/www/html/.env
     networks:
       - dokploy-network
     # Removed depends_on mysql since we use external DB
