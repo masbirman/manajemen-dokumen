@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-configure intl \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -23,12 +24,24 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Create system user to run Composer and Artisan Commands
-RUN useradd -G www-data,root -u 1000 -d /home/dev dev
-RUN mkdir -p /home/dev/.composer && \
-    chown -R dev:dev /home/dev
+# Copy composer files first (for caching)
+COPY composer.json composer.lock ./
 
-USER dev
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Copy rest of application
+COPY . .
+
+# Run post-install scripts
+RUN composer dump-autoload --optimize
+
+# Create storage directories
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
+
+# Publish assets
+RUN php artisan package:discover --ansi || true
 
 EXPOSE 9000
 CMD ["php-fpm"]
