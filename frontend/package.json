@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "jscanify": "^1.4.0",
     "jspdf": "^3.0.4",
     "next": "^14.2.0",
     "pdf-lib": "^1.17.1",
