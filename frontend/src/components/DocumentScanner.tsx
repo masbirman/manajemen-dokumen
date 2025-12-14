@@ -142,7 +142,7 @@ export default function DocumentScanner({
     }
   }, []);
 
-  // Simple edge detection for white documents
+  // Improved edge detection using contour-based approach
   const detectDocumentEdges = useCallback(() => {
     const video = webcamRef.current?.video;
     const canvas = canvasRef.current;
@@ -155,29 +155,58 @@ export default function DocumentScanner({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Set canvas size to match video (scaled down for performance)
+    const scale = 0.25; // Process at 1/4 resolution
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
 
     // Draw current frame
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     // Get image data
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
 
-    // Simple white paper detection - find bright regions
-    const threshold = 180; // Brightness threshold for white paper
-    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-    let whitePixelCount = 0;
+    // Convert to grayscale and apply Gaussian blur (simplified)
+    const gray: number[] = [];
+    for (let i = 0; i < data.length; i += 4) {
+      gray.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    }
 
-    for (let y = 0; y < canvas.height; y += 4) { // Sample every 4th pixel for performance
-      for (let x = 0; x < canvas.width; x += 4) {
-        const i = (y * canvas.width + x) * 4;
-        const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    // Simple edge detection using Sobel-like gradient
+    const edges: number[] = new Array(gray.length).fill(0);
+    const threshold = 30; // Edge threshold
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = y * width + x;
         
-        if (brightness > threshold) {
-          whitePixelCount++;
+        // Calculate gradient (simplified Sobel)
+        const gx = Math.abs(gray[idx + 1] - gray[idx - 1]);
+        const gy = Math.abs(gray[idx + width] - gray[idx - width]);
+        const gradient = Math.sqrt(gx * gx + gy * gy);
+        
+        if (gradient > threshold) {
+          edges[idx] = 255;
+        }
+      }
+    }
+
+    // Find bounding box of edges (indicating document edges)
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+    let edgeCount = 0;
+
+    // Focus on center region where document is likely to be
+    const marginX = Math.floor(width * 0.05);
+    const marginY = Math.floor(height * 0.05);
+
+    for (let y = marginY; y < height - marginY; y++) {
+      for (let x = marginX; x < width - marginX; x++) {
+        const idx = y * width + x;
+        if (edges[idx] > 0) {
+          edgeCount++;
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
           if (y < minY) minY = y;
@@ -186,20 +215,38 @@ export default function DocumentScanner({
       }
     }
 
+    // Scale back to video dimensions
+    const scaleBack = 1 / scale;
+    minX = Math.floor(minX * scaleBack);
+    maxX = Math.floor(maxX * scaleBack);
+    minY = Math.floor(minY * scaleBack);
+    maxY = Math.floor(maxY * scaleBack);
+
     // Check if we have a reasonable document-sized area
     const docWidth = maxX - minX;
     const docHeight = maxY - minY;
-    const areaRatio = (docWidth * docHeight) / (canvas.width * canvas.height);
+    const aspectRatio = docWidth / docHeight;
+    
+    // A4-ish aspect ratio is around 0.707 (210/297), allow some tolerance
+    const validAspect = aspectRatio > 0.5 && aspectRatio < 1.5;
+    
+    // Document should have significant edge count and reasonable size
+    const minDocSize = Math.min(video.videoWidth, video.videoHeight) * 0.2;
+    const validSize = docWidth > minDocSize && docHeight > minDocSize;
+    
+    // Need enough edges to form a rectangle
+    const hasEnoughEdges = edgeCount > 100;
 
-    if (areaRatio > 0.1 && areaRatio < 0.9 && whitePixelCount > 1000) {
+    if (validSize && validAspect && hasEnoughEdges) {
       setDocumentDetected(true);
       // Add some padding
-      const pad = 10;
+      const padX = docWidth * 0.02;
+      const padY = docHeight * 0.02;
       setCorners([
-        { x: Math.max(0, minX - pad), y: Math.max(0, minY - pad) },
-        { x: Math.min(canvas.width, maxX + pad), y: Math.max(0, minY - pad) },
-        { x: Math.min(canvas.width, maxX + pad), y: Math.min(canvas.height, maxY + pad) },
-        { x: Math.max(0, minX - pad), y: Math.min(canvas.height, maxY + pad) },
+        { x: Math.max(0, minX - padX), y: Math.max(0, minY - padY) },
+        { x: Math.min(video.videoWidth, maxX + padX), y: Math.max(0, minY - padY) },
+        { x: Math.min(video.videoWidth, maxX + padX), y: Math.min(video.videoHeight, maxY + padY) },
+        { x: Math.max(0, minX - padX), y: Math.min(video.videoHeight, maxY + padY) },
       ]);
     } else {
       setDocumentDetected(false);
