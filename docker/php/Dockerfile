@@ -1,6 +1,5 @@
 FROM php:8.2-fpm
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -18,34 +17,29 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first (for caching)
 COPY composer.json composer.lock ./
 
-# Install dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
-# Copy rest of application
 COPY . .
 
-# Run post-install scripts
 RUN composer dump-autoload --optimize
 
-# Create storage directories
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
     && chmod -R 777 storage bootstrap/cache
 
-# Publish assets including Filament (CRITICAL for sidebar to work!)
 RUN php artisan package:discover --ansi || true
 RUN php artisan filament:assets || true
 
-# Create storage link
-RUN php artisan storage:link || true
+RUN cp -r public /public-build
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 9000
-CMD ["php-fpm"]
+
+ENTRYPOINT ["/entrypoint.sh"]
