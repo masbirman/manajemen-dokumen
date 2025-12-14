@@ -28,7 +28,11 @@ RUN useradd -G www-data,root -u 1000 -d /home/dev dev
 RUN mkdir -p /home/dev/.composer && \
     chown -R dev:dev /home/dev
 
-USER dev
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000
-CMD ["php-fpm"]
+
+# Run entrypoint as root to handle permissions, then switch to dev user for php-fpm
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
