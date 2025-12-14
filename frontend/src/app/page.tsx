@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import DocumentForm from "@/components/DocumentForm";
-import DataTable, { Record as DocumentRecord } from "@/components/DataTable";
-import LoginForm from "@/components/LoginForm";
-import RoleSelector from "@/components/RoleSelector";
-import { api } from "@/lib/api";
+import DocumentForm from "../components/DocumentForm";
+import DataTable, { Record as DocumentRecord } from "../components/DataTable";
+import LoginForm from "../components/LoginForm";
+import RoleSelector from "../components/RoleSelector";
+import { api } from "../lib/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
