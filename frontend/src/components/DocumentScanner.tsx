@@ -4,129 +4,30 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Webcam from "react-webcam";
 import { jsPDF } from "jspdf";
 
+// Declare OpenCV type
+declare global {
+  interface Window {
+    cv: any;
+    Module: any;
+  }
+}
+
 interface ScannedPage {
   id: string;
-  imageData: string;
-  processedData?: string;
+  originalData: string;
+  processedData: string;
 }
 
 interface DocumentScannerProps {
   onPdfGenerated?: (pdfBlob: Blob, fileName: string) => void;
   onClose?: () => void;
-  nilai?: string; // For PDF naming
+  nilai?: string;
 }
 
-// Canvas-based image processing utilities
-const processImage = async (
-  imageData: string,
-  cropArea?: { x: number; y: number; width: number; height: number }
-): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      // Determine crop dimensions or use full image
-      const srcX = cropArea?.x ?? 0;
-      const srcY = cropArea?.y ?? 0;
-      const srcWidth = cropArea?.width ?? img.width;
-      const srcHeight = cropArea?.height ?? img.height;
-      
-      // Use A4 aspect ratio for output (210:297)
-      const a4Ratio = 210 / 297;
-      let destWidth = srcWidth;
-      let destHeight = srcHeight;
-      
-      // Adjust to maintain reasonable size (max 1200px width)
-      if (destWidth > 1200) {
-        destWidth = 1200;
-        destHeight = destWidth / (srcWidth / srcHeight);
-      }
-      
-      const canvas = document.createElement("canvas");
-      canvas.width = destWidth;
-      canvas.height = destHeight;
-      const ctx = canvas.getContext("2d")!;
-
-      // Draw cropped region
-      ctx.drawImage(
-        img, 
-        srcX, srcY, srcWidth, srcHeight,  // Source rectangle
-        0, 0, destWidth, destHeight       // Destination rectangle
-      );
-
-      // Get image data for processing
-      const canvasData = ctx.getImageData(0, 0, destWidth, destHeight);
-      const data = canvasData.data;
-
-      // Process each pixel: Grayscale + Contrast enhancement
-      for (let i = 0; i < data.length; i += 4) {
-        // Convert to grayscale
-        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        
-        // Apply contrast enhancement (factor 1.4 for document clarity)
-        const factor = 1.4;
-        const enhanced = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
-        
-        data[i] = enhanced;     // R
-        data[i + 1] = enhanced; // G
-        data[i + 2] = enhanced; // B
-        // Alpha stays the same
-      }
-
-      // Put processed data back
-      ctx.putImageData(canvasData, 0, 0);
-
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
-    };
-    img.src = imageData;
-  });
-};
-
-// Compress image to target size
-const compressImage = async (
-  imageData: string,
-  maxSizeKB: number
-): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let quality = 0.8;
-      let result = imageData;
-      
-      const compress = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        
-        // If quality is too low, start reducing dimensions
-        if (quality < 0.4) {
-          const scale = 0.8;
-          width = Math.floor(width * scale);
-          height = Math.floor(height * scale);
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        result = canvas.toDataURL("image/jpeg", quality);
-        
-        // Check size (base64 is ~37% larger than binary)
-        const sizeKB = (result.length * 0.75) / 1024;
-        
-        if (sizeKB > maxSizeKB && quality > 0.3) {
-          quality -= 0.1;
-          compress();
-        } else {
-          resolve(result);
-        }
-      };
-      
-      compress();
-    };
-    img.src = imageData;
-  });
-};
+interface Point {
+  x: number;
+  y: number;
+}
 
 export default function DocumentScanner({
   onPdfGenerated,
@@ -135,6 +36,8 @@ export default function DocumentScanner({
 }: DocumentScannerProps) {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const processingCanvasRef = useRef<HTMLCanvasElement>(null);
+  
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [scanning, setScanning] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -142,14 +45,62 @@ export default function DocumentScanner({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [documentDetected, setDocumentDetected] = useState(false);
-  const [corners, setCorners] = useState<{ x: number; y: number }[]>([]);
+  const [corners, setCorners] = useState<Point[]>([]);
+  const [cvReady, setCvReady] = useState(false);
+  const [cvLoading, setCvLoading] = useState(true);
+  
   const animationRef = useRef<number>();
+  const detectionStableCount = useRef(0);
+  const lastCorners = useRef<Point[]>([]);
 
   const videoConstraints = {
     width: { ideal: 1920 },
     height: { ideal: 1080 },
     facingMode: facingMode,
   };
+
+  // Load OpenCV.js from CDN
+  useEffect(() => {
+    const loadOpenCV = async () => {
+      if (window.cv && window.cv.Mat) {
+        setCvReady(true);
+        setCvLoading(false);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://docs.opencv.org/4.9.0/opencv.js";
+      script.async = true;
+      
+      script.onload = () => {
+        // OpenCV.js uses Module pattern - wait for it to be ready
+        const checkReady = () => {
+          if (window.cv && window.cv.Mat) {
+            setCvReady(true);
+            setCvLoading(false);
+          } else {
+            setTimeout(checkReady, 100);
+          }
+        };
+        checkReady();
+      };
+      
+      script.onerror = () => {
+        console.error("Failed to load OpenCV.js");
+        setCvLoading(false);
+      };
+      
+      document.head.appendChild(script);
+    };
+
+    loadOpenCV();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error("Camera error:", error);
@@ -160,129 +111,318 @@ export default function DocumentScanner({
     }
   }, []);
 
-  // Improved edge detection using contour-based approach
-  const detectDocumentEdges = useCallback(() => {
+  // Order points: top-left, top-right, bottom-right, bottom-left
+  const orderPoints = useCallback((pts: Point[]): Point[] => {
+    if (pts.length !== 4) return pts;
+    
+    // Sort by y first to get top/bottom pairs
+    const sorted = [...pts].sort((a, b) => a.y - b.y);
+    const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
+    const bottom = sorted.slice(2, 4).sort((a, b) => a.x - b.x);
+    
+    return [top[0], top[1], bottom[1], bottom[0]];
+  }, []);
+
+  // Calculate distance between two points
+  const distance = (p1: Point, p2: Point): number => {
+    return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+  };
+
+  // Check if corners are stable (not jumping around)
+  const cornersAreStable = useCallback((newCorners: Point[]): boolean => {
+    if (lastCorners.current.length !== 4 || newCorners.length !== 4) {
+      lastCorners.current = newCorners;
+      return false;
+    }
+
+    const threshold = 10; // pixels
+    let stable = true;
+    
+    for (let i = 0; i < 4; i++) {
+      if (distance(lastCorners.current[i], newCorners[i]) > threshold) {
+        stable = false;
+        break;
+      }
+    }
+    
+    lastCorners.current = newCorners;
+    return stable;
+  }, []);
+
+  // OpenCV-based document detection
+  const detectDocument = useCallback(() => {
+    if (!cvReady || !window.cv) {
+      animationRef.current = requestAnimationFrame(detectDocument);
+      return;
+    }
+
     const video = webcamRef.current?.video;
     const canvas = canvasRef.current;
     
     if (!video || !canvas || video.readyState !== 4) {
-      animationRef.current = requestAnimationFrame(detectDocumentEdges);
+      animationRef.current = requestAnimationFrame(detectDocument);
       return;
     }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const cv = window.cv;
 
-    // Set canvas size to match video (scaled down for performance)
-    const scale = 0.25; // Process at 1/4 resolution
-    canvas.width = video.videoWidth * scale;
-    canvas.height = video.videoHeight * scale;
+    try {
+      // Set canvas size
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(video, 0, 0);
 
-    // Draw current frame
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Get image data
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Convert to grayscale and apply Gaussian blur (simplified)
-    const gray: number[] = [];
-    for (let i = 0; i < data.length; i += 4) {
-      gray.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-    }
-
-    // Simple edge detection using Sobel-like gradient
-    const edges: number[] = new Array(gray.length).fill(0);
-    const threshold = 30; // Edge threshold
-
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = y * width + x;
+      // Read image from canvas
+      const src = cv.imread(canvas);
+      const gray = new cv.Mat();
+      const blurred = new cv.Mat();
+      const edges = new cv.Mat();
+      
+      // Convert to grayscale
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      
+      // Apply Gaussian blur
+      cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+      
+      // Canny edge detection
+      cv.Canny(blurred, edges, 50, 150);
+      
+      // Dilate to close gaps
+      const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+      cv.dilate(edges, edges, kernel);
+      
+      // Find contours
+      const contours = new cv.MatVector();
+      const hierarchy = new cv.Mat();
+      cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+      
+      let maxArea = 0;
+      let bestContour: any = null;
+      
+      // Find largest quadrilateral
+      for (let i = 0; i < contours.size(); i++) {
+        const contour = contours.get(i);
+        const area = cv.contourArea(contour);
         
-        // Calculate gradient (simplified Sobel)
-        const gx = Math.abs(gray[idx + 1] - gray[idx - 1]);
-        const gy = Math.abs(gray[idx + width] - gray[idx - width]);
-        const gradient = Math.sqrt(gx * gx + gy * gy);
-        
-        if (gradient > threshold) {
-          edges[idx] = 255;
+        if (area > maxArea && area > (canvas.width * canvas.height * 0.1)) {
+          const peri = cv.arcLength(contour, true);
+          const approx = new cv.Mat();
+          cv.approxPolyDP(contour, approx, 0.02 * peri, true);
+          
+          if (approx.rows === 4) {
+            maxArea = area;
+            if (bestContour) bestContour.delete();
+            bestContour = approx;
+          } else {
+            approx.delete();
+          }
         }
       }
-    }
-
-    // Find bounding box of edges (indicating document edges)
-    let minX = width, minY = height, maxX = 0, maxY = 0;
-    let edgeCount = 0;
-
-    // Focus on center region where document is likely to be
-    const marginX = Math.floor(width * 0.05);
-    const marginY = Math.floor(height * 0.05);
-
-    for (let y = marginY; y < height - marginY; y++) {
-      for (let x = marginX; x < width - marginX; x++) {
-        const idx = y * width + x;
-        if (edges[idx] > 0) {
-          edgeCount++;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+      
+      if (bestContour && bestContour.rows === 4) {
+        // Extract corner points
+        const pts: Point[] = [];
+        for (let i = 0; i < 4; i++) {
+          pts.push({
+            x: bestContour.data32S[i * 2],
+            y: bestContour.data32S[i * 2 + 1],
+          });
         }
+        
+        const orderedPts = orderPoints(pts);
+        
+        // Check stability
+        if (cornersAreStable(orderedPts)) {
+          detectionStableCount.current++;
+        } else {
+          detectionStableCount.current = 0;
+        }
+        
+        // Update state if stable for a few frames
+        if (detectionStableCount.current >= 3) {
+          setDocumentDetected(true);
+          setCorners(orderedPts);
+        }
+        
+        bestContour.delete();
+      } else {
+        detectionStableCount.current = 0;
+        setDocumentDetected(false);
+        setCorners([]);
       }
+      
+      // Cleanup
+      src.delete();
+      gray.delete();
+      blurred.delete();
+      edges.delete();
+      kernel.delete();
+      contours.delete();
+      hierarchy.delete();
+      
+    } catch (error) {
+      console.error("Detection error:", error);
     }
 
-    // Scale back to video dimensions
-    const scaleBack = 1 / scale;
-    minX = Math.floor(minX * scaleBack);
-    maxX = Math.floor(maxX * scaleBack);
-    minY = Math.floor(minY * scaleBack);
-    maxY = Math.floor(maxY * scaleBack);
+    animationRef.current = requestAnimationFrame(detectDocument);
+  }, [cvReady, orderPoints, cornersAreStable]);
 
-    // Check if we have a reasonable document-sized area
-    const docWidth = maxX - minX;
-    const docHeight = maxY - minY;
-    const aspectRatio = docWidth / docHeight;
-    
-    // A4-ish aspect ratio is around 0.707 (210/297), allow some tolerance
-    const validAspect = aspectRatio > 0.5 && aspectRatio < 1.5;
-    
-    // Document should have significant edge count and reasonable size
-    const minDocSize = Math.min(video.videoWidth, video.videoHeight) * 0.2;
-    const validSize = docWidth > minDocSize && docHeight > minDocSize;
-    
-    // Need enough edges to form a rectangle
-    const hasEnoughEdges = edgeCount > 100;
-
-    if (validSize && validAspect && hasEnoughEdges) {
-      setDocumentDetected(true);
-      // Add some padding
-      const padX = docWidth * 0.02;
-      const padY = docHeight * 0.02;
-      setCorners([
-        { x: Math.max(0, minX - padX), y: Math.max(0, minY - padY) },
-        { x: Math.min(video.videoWidth, maxX + padX), y: Math.max(0, minY - padY) },
-        { x: Math.min(video.videoWidth, maxX + padX), y: Math.min(video.videoHeight, maxY + padY) },
-        { x: Math.max(0, minX - padX), y: Math.min(video.videoHeight, maxY + padY) },
-      ]);
-    } else {
-      setDocumentDetected(false);
-      setCorners([]);
-    }
-
-    animationRef.current = requestAnimationFrame(detectDocumentEdges);
-  }, []);
-
-  // Start edge detection when camera is ready
+  // Start detection when camera and OpenCV are ready
   useEffect(() => {
-    animationRef.current = requestAnimationFrame(detectDocumentEdges);
+    if (cvReady) {
+      animationRef.current = requestAnimationFrame(detectDocument);
+    }
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [detectDocumentEdges]);
+  }, [cvReady, detectDocument]);
+
+  // Perspective transform and process image
+  const processCapture = useCallback(async (imageSrc: string, docCorners: Point[]): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const cv = window.cv;
+        
+        if (!cv || docCorners.length !== 4) {
+          // Fallback: just enhance the image
+          resolve(enhanceImage(imageSrc));
+          return;
+        }
+
+        try {
+          // Create canvas and draw image
+          const canvas = processingCanvasRef.current || document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0);
+          
+          // Read image
+          const src = cv.imread(canvas);
+          
+          // Calculate output dimensions (A4 ratio at reasonable resolution)
+          const orderedCorners = docCorners;
+          const widthTop = distance(orderedCorners[0], orderedCorners[1]);
+          const widthBottom = distance(orderedCorners[3], orderedCorners[2]);
+          const heightLeft = distance(orderedCorners[0], orderedCorners[3]);
+          const heightRight = distance(orderedCorners[1], orderedCorners[2]);
+          
+          const maxWidth = Math.max(widthTop, widthBottom);
+          const maxHeight = Math.max(heightLeft, heightRight);
+          
+          // Target: max 1200px width for good quality but reasonable size
+          const scale = Math.min(1200 / maxWidth, 1600 / maxHeight, 1);
+          const outWidth = Math.round(maxWidth * scale);
+          const outHeight = Math.round(maxHeight * scale);
+          
+          // Source points
+          const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            orderedCorners[0].x, orderedCorners[0].y,
+            orderedCorners[1].x, orderedCorners[1].y,
+            orderedCorners[2].x, orderedCorners[2].y,
+            orderedCorners[3].x, orderedCorners[3].y,
+          ]);
+          
+          // Destination points
+          const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            0, 0,
+            outWidth, 0,
+            outWidth, outHeight,
+            0, outHeight,
+          ]);
+          
+          // Get perspective transform matrix
+          const M = cv.getPerspectiveTransform(srcPts, dstPts);
+          
+          // Apply transform
+          const dst = new cv.Mat();
+          cv.warpPerspective(src, dst, M, new cv.Size(outWidth, outHeight));
+          
+          // Convert to grayscale for document
+          const gray = new cv.Mat();
+          cv.cvtColor(dst, gray, cv.COLOR_RGBA2GRAY);
+          
+          // Apply adaptive threshold for clean black/white text
+          const binary = new cv.Mat();
+          cv.adaptiveThreshold(
+            gray, binary, 255,
+            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv.THRESH_BINARY,
+            21, 10
+          );
+          
+          // Convert back to color for PDF
+          const result = new cv.Mat();
+          cv.cvtColor(binary, result, cv.COLOR_GRAY2RGBA);
+          
+          // Output to canvas
+          const outCanvas = document.createElement("canvas");
+          outCanvas.width = outWidth;
+          outCanvas.height = outHeight;
+          cv.imshow(outCanvas, result);
+          
+          // Cleanup
+          src.delete();
+          dst.delete();
+          gray.delete();
+          binary.delete();
+          result.delete();
+          srcPts.delete();
+          dstPts.delete();
+          M.delete();
+          
+          // Get data URL with good quality
+          resolve(outCanvas.toDataURL("image/jpeg", 0.85));
+          
+        } catch (error) {
+          console.error("Processing error:", error);
+          resolve(enhanceImage(imageSrc));
+        }
+      };
+      img.src = imageSrc;
+    });
+  }, []);
+
+  // Fallback image enhancement without OpenCV
+  const enhanceImage = (imageSrc: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 1200;
+        const scale = Math.min(maxWidth / img.width, 1);
+        
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Apply simple grayscale + contrast
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Grayscale
+          const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          
+          // High contrast threshold for text
+          const threshold = gray > 140 ? 255 : 0;
+          
+          data[i] = threshold;
+          data[i + 1] = threshold;
+          data[i + 2] = threshold;
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = imageSrc;
+    });
+  };
 
   const capture = useCallback(async () => {
     if (webcamRef.current) {
@@ -292,35 +432,17 @@ export default function DocumentScanner({
       if (imageSrc) {
         let processedImage: string;
         
-        // Get video dimensions for coordinate scaling
-        const video = webcamRef.current.video;
-        
-        // If document detected with corners, crop to document
-        if (documentDetected && corners.length === 4 && video) {
-          // Calculate crop area from corners
-          // Corners are in video coordinates, screenshot is at video resolution
-          const minX = Math.min(corners[0].x, corners[3].x);
-          const maxX = Math.max(corners[1].x, corners[2].x);
-          const minY = Math.min(corners[0].y, corners[1].y);
-          const maxY = Math.max(corners[2].y, corners[3].y);
-          
-          const cropArea = {
-            x: Math.max(0, minX),
-            y: Math.max(0, minY),
-            width: maxX - minX,
-            height: maxY - minY,
-          };
-          
-          // Process with crop
-          processedImage = await processImage(imageSrc, cropArea);
+        if (documentDetected && corners.length === 4 && cvReady) {
+          // Process with perspective transform
+          processedImage = await processCapture(imageSrc, corners);
         } else {
-          // No detection - process full image
-          processedImage = await processImage(imageSrc);
+          // Fallback processing
+          processedImage = await enhanceImage(imageSrc);
         }
         
         const newPage: ScannedPage = {
           id: Date.now().toString(),
-          imageData: imageSrc,
+          originalData: imageSrc,
           processedData: processedImage,
         };
 
@@ -332,10 +454,56 @@ export default function DocumentScanner({
       }
       setScanning(false);
     }
-  }, [scanMode, documentDetected, corners]);
+  }, [scanMode, documentDetected, corners, cvReady, processCapture]);
 
   const deletePage = (id: string) => {
     setPages((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // Compress image to target size
+  const compressToSize = async (imageData: string, maxSizeKB: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let quality = 0.85;
+        let width = img.width;
+        let height = img.height;
+        let result = imageData;
+        
+        const compress = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          result = canvas.toDataURL("image/jpeg", quality);
+          const sizeKB = (result.length * 0.75) / 1024;
+          
+          if (sizeKB > maxSizeKB) {
+            if (quality > 0.5) {
+              quality -= 0.1;
+              compress();
+            } else if (width > 800) {
+              // Reduce dimensions
+              width = Math.round(width * 0.85);
+              height = Math.round(height * 0.85);
+              quality = 0.85;
+              compress();
+            } else {
+              resolve(result);
+            }
+          } else {
+            resolve(result);
+          }
+        };
+        
+        compress();
+      };
+      img.src = imageData;
+    });
   };
 
   const generatePdf = async () => {
@@ -352,17 +520,17 @@ export default function DocumentScanner({
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Target ~250KB per page to stay under 300KB total for single page
+      const targetSizePerPage = 250;
 
       for (let i = 0; i < pages.length; i++) {
         if (i > 0) {
           pdf.addPage();
         }
 
-        // Use processed (grayscale + enhanced) image
-        let imgData = pages[i].processedData || pages[i].imageData;
-        
-        // Compress if needed
-        imgData = await compressImage(imgData, 250); // Target 250KB per page to ensure PDF stays under 300KB
+        // Compress to target size
+        const imgData = await compressToSize(pages[i].processedData, targetSizePerPage);
 
         const img = new Image();
         img.src = imgData;
@@ -393,7 +561,7 @@ export default function DocumentScanner({
 
       const pdfBlob = pdf.output("blob");
       
-      // Generate filename from nilai
+      // Generate filename
       const nilaiClean = nilai?.replace(/\D/g, "") || Date.now().toString();
       const fileName = `SPJ_${nilaiClean}.pdf`;
 
@@ -401,7 +569,6 @@ export default function DocumentScanner({
         onPdfGenerated(pdfBlob, fileName);
       }
 
-      // Reset pages after generating
       setPages([]);
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -414,22 +581,19 @@ export default function DocumentScanner({
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
-  // Calculate overlay dimensions
-  const getOverlayStyle = () => {
-    if (corners.length !== 4) return {};
+  // Calculate SVG polygon points for overlay
+  const getPolygonPoints = (): string => {
+    if (corners.length !== 4) return "";
     
     const video = webcamRef.current?.video;
-    if (!video) return {};
+    if (!video) return "";
     
     const scaleX = video.clientWidth / video.videoWidth;
     const scaleY = video.clientHeight / video.videoHeight;
     
-    return {
-      left: corners[0].x * scaleX,
-      top: corners[0].y * scaleY,
-      width: (corners[1].x - corners[0].x) * scaleX,
-      height: (corners[3].y - corners[0].y) * scaleY,
-    };
+    return corners
+      .map((c) => `${c.x * scaleX},${c.y * scaleY}`)
+      .join(" ");
   };
 
   return (
@@ -441,7 +605,7 @@ export default function DocumentScanner({
         </button>
         <span className="scanner-title">Document Scanner</span>
         <span className={`scanner-auto-badge ${documentDetected ? "active" : ""}`}>
-          {documentDetected ? "✓ AUTO" : "AUTO"}
+          {cvLoading ? "⏳" : documentDetected ? "✓ AUTO" : "AUTO"}
         </span>
       </div>
 
@@ -453,45 +617,64 @@ export default function DocumentScanner({
         </div>
       )}
 
+      {/* OpenCV Loading */}
+      {cvLoading && (
+        <div className="scanner-loading">
+          <span>Memuat scanner...</span>
+        </div>
+      )}
+
       {/* Camera View */}
       <div className="scanner-camera-container">
         <Webcam
           ref={webcamRef}
           audio={false}
           screenshotFormat="image/jpeg"
-          screenshotQuality={0.92}
+          screenshotQuality={0.95}
           videoConstraints={videoConstraints}
           onUserMediaError={handleUserMediaError}
           className="scanner-video-dark"
         />
         
-        {/* Hidden canvas for edge detection */}
+        {/* Hidden canvas for detection */}
         <canvas ref={canvasRef} style={{ display: "none" }} />
+        <canvas ref={processingCanvasRef} style={{ display: "none" }} />
         
-        {/* Document detection overlay */}
+        {/* Document detection polygon overlay */}
         {documentDetected && corners.length === 4 && (
-          <div 
-            className="scanner-detection-overlay"
-            style={getOverlayStyle()}
-          />
-        )}
-        
-        {/* Corner indicators */}
-        {documentDetected && (
-          <div className="scanner-corners">
-            <div className="corner corner-tl" />
-            <div className="corner corner-tr" />
-            <div className="corner corner-bl" />
-            <div className="corner corner-br" />
-          </div>
+          <svg className="scanner-polygon-overlay">
+            <polygon
+              points={getPolygonPoints()}
+              fill="rgba(37, 99, 235, 0.2)"
+              stroke="#2563eb"
+              strokeWidth="3"
+            />
+            {corners.map((corner, i) => {
+              const video = webcamRef.current?.video;
+              if (!video) return null;
+              const scaleX = video.clientWidth / video.videoWidth;
+              const scaleY = video.clientHeight / video.videoHeight;
+              return (
+                <circle
+                  key={i}
+                  cx={corner.x * scaleX}
+                  cy={corner.y * scaleY}
+                  r="8"
+                  fill="#2563eb"
+                />
+              );
+            })}
+          </svg>
         )}
       </div>
 
       {/* Guidance text */}
       <div className="scanner-guidance">
-        {documentDetected 
-          ? "📄 Dokumen terdeteksi. Tekan tombol untuk capture."
-          : "Arahkan kamera ke dokumen kertas putih"}
+        {cvLoading 
+          ? "⏳ Memuat OpenCV..."
+          : documentDetected 
+            ? "📄 Dokumen terdeteksi! Tekan tombol untuk capture."
+            : "Arahkan kamera ke dokumen"}
       </div>
 
       {/* Bottom Controls */}
@@ -511,7 +694,7 @@ export default function DocumentScanner({
           type="button"
           onClick={capture}
           className="scanner-capture-btn"
-          disabled={scanning}
+          disabled={scanning || cvLoading}
         >
           <div className="capture-btn-inner">
             {scanning ? "⏳" : ""}
@@ -546,7 +729,7 @@ export default function DocumentScanner({
           <div className="pages-grid">
             {pages.map((page, index) => (
               <div key={page.id} className="page-thumb">
-                <img src={page.processedData || page.imageData} alt={`Page ${index + 1}`} />
+                <img src={page.processedData} alt={`Page ${index + 1}`} />
                 <span className="page-num">{index + 1}</span>
                 <button
                   type="button"
