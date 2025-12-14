@@ -74,6 +74,13 @@ class RecordController extends Controller
 
     public function update(Request $request, Record $record)
     {
+        // Authorization: Only owner can update their own record
+        if ($record->created_by !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki akses untuk mengedit data ini'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'unit_id' => 'sometimes|required|exists:units,id',
             'type_id' => 'sometimes|required|exists:types,id',
@@ -99,8 +106,15 @@ class RecordController extends Controller
         ]);
     }
 
-    public function destroy(Record $record)
+    public function destroy(Request $request, Record $record)
     {
+        // Authorization: Only owner can delete their own record
+        if ($record->created_by !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki akses untuk menghapus data ini'
+            ], 403);
+        }
+
         // Delete PDF file
         if ($record->pdf_path) {
             Storage::disk('public')->delete($record->pdf_path);

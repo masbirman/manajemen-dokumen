@@ -37,7 +37,6 @@ interface DataTableProps {
 }
 
 export default function DataTable({ user, onEdit }: DataTableProps) {
-  console.log("DataTable Rendered. onEdit prop present?", !!onEdit);
 
   const [records, setRecords] = useState<Record[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -158,7 +157,7 @@ export default function DataTable({ user, onEdit }: DataTableProps) {
                 <th>Nilai</th>
                 <th>Uraian</th>
                 <th>PDF</th>
-                <th>Aksi (Debug)</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -222,15 +221,7 @@ export default function DataTable({ user, onEdit }: DataTableProps) {
                       {isOwner(record) ? (
                         <div className="action-buttons">
                           <button
-                            onClick={() => {
-                              console.log('Edit button clicked for record:', record.id);
-                              console.log('onEdit prop is:', onEdit);
-                              if (onEdit) {
-                                onEdit(record);
-                              } else {
-                                alert(`DEBUG: Fitur edit gagal. onEdit prop is: ${typeof onEdit}`);
-                              }
-                            }}
+                            onClick={() => onEdit?.(record)}
                             className="btn-icon btn-edit"
                             title="Edit"
                           >
