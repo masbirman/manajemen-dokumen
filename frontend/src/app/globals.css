@@ -2095,3 +2095,368 @@ html, body {
   color: var(--gray-500);
 }
 
+/* ============================================
+   Dark Mode Scanner Styles
+   ============================================ */
+
+.scanner-modal-dark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.scanner-header-dark {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.scanner-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scanner-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.scanner-title {
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.scanner-auto-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.scanner-auto-badge.active {
+  background: #22c55e;
+  color: white;
+}
+
+.scanner-error {
+  position: absolute;
+  top: 5rem;
+  left: 1rem;
+  right: 1rem;
+  background: #ef4444;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.scanner-camera-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-video-dark {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Document detection overlay - blue polygon */
+.scanner-detection-overlay {
+  position: absolute;
+  border: 3px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Corner indicators */
+.scanner-corners {
+  position: absolute;
+  top: 15%;
+  left: 10%;
+  right: 10%;
+  bottom: 25%;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #3b82f6;
+  border-style: solid;
+  border-width: 0;
+}
+
+.corner-tl {
+  top: 0;
+  left: 0;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-top-left-radius: 8px;
+}
+
+.corner-tr {
+  top: 0;
+  right: 0;
+  border-top-width: 3px;
+  border-right-width: 3px;
+  border-top-right-radius: 8px;
+}
+
+.corner-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  border-bottom-left-radius: 8px;
+}
+
+.corner-br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  border-bottom-right-radius: 8px;
+}
+
+.scanner-guidance {
+  position: absolute;
+  bottom: 180px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.scanner-controls-dark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.scanner-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.5rem;
+}
+
+.scanner-mode-btn span:first-child {
+  font-size: 1.5rem;
+}
+
+.scanner-mode-btn.active {
+  color: white;
+}
+
+.scanner-mode-btn:hover {
+  color: white;
+}
+
+/* Large circular capture button */
+.scanner-capture-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: white;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.scanner-capture-btn:hover {
+  transform: scale(1.05);
+}
+
+.scanner-capture-btn:active {
+  transform: scale(0.95);
+}
+
+.scanner-capture-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capture-btn-inner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+/* Flip camera button */
+.scanner-flip-btn {
+  position: absolute;
+  bottom: 100px;
+  right: 1rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scanner-flip-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Scanned pages preview */
+.scanner-pages-preview {
+  position: absolute;
+  bottom: 130px;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.pages-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.scanner-generate-btn {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scanner-generate-btn:hover {
+  background: #16a34a;
+}
+
+.scanner-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pages-grid {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.page-thumb {
+  position: relative;
+  width: 60px;
+  height: 85px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.page-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-num {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: #3b82f6;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  font-size: 0.625rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

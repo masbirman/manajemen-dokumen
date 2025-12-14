@@ -201,9 +201,9 @@ export default function DocumentForm({ onSuccess, onCancel, user, initialData }:
     setNilai(raw);
   };
 
-  const handlePdfGenerated = (blob: Blob) => {
+  const handlePdfGenerated = (blob: Blob, fileName: string) => {
     setPdfBlob(blob);
-    setPdfName(`scan_${Date.now()}.pdf`);
+    setPdfName(fileName);
     setShowScanner(false);
     setSuccess("Dokumen berhasil di-scan!");
   };
@@ -277,6 +277,7 @@ export default function DocumentForm({ onSuccess, onCancel, user, initialData }:
       <DocumentScanner
         onPdfGenerated={handlePdfGenerated}
         onClose={() => setShowScanner(false)}
+        nilai={nilai}
       />
     );
   }
