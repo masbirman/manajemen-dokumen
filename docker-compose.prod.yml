@@ -24,7 +24,7 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=docscanner
       - DB_USERNAME=docscanner
-      - DB_PASSWORD=wqxxwehyhdlp7*0
+      - DB_PASSWORD=wqxxwehyhdlqr7x0
       - SESSION_DRIVER=database
       - CACHE_STORE=database
       - QUEUE_CONNECTION=database
