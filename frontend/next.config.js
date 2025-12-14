@@ -41,6 +41,18 @@ const nextConfig = {
         source: '/livewire/:path*',
         destination: 'http://docscanner-backend:8000/livewire/:path*',
       },
+      {
+        source: '/js/filament/:path*',
+        destination: 'http://docscanner-backend:8000/js/filament/:path*',
+      },
+      {
+        source: '/css/filament/:path*',
+        destination: 'http://docscanner-backend:8000/css/filament/:path*',
+      },
+      {
+        source: '/vendor/:path*',
+        destination: 'http://docscanner-backend:8000/vendor/:path*',
+      },
     ];
   },
 };
