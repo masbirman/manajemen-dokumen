@@ -17,10 +17,10 @@ export default function RoleSelector({
 }: RoleSelectorProps) {
   
   const handleAdminClick = () => {
-    // Get token and redirect to admin auto-login
+    // Get token and redirect to admin auto-login via Next.js proxy
     const token = localStorage.getItem('auth_token');
     if (token) {
-      window.location.href = `${API_BASE_URL}/auto-login?token=${encodeURIComponent(token)}`;
+      window.location.href = `/auto-login?token=${encodeURIComponent(token)}`;
     }
   };
 
