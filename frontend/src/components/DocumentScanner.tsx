@@ -19,35 +19,53 @@ interface DocumentScannerProps {
 // Canvas-based image processing utilities
 const processImage = async (
   imageData: string,
-  width: number,
-  height: number
+  cropArea?: { x: number; y: number; width: number; height: number }
 ): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      // Determine crop dimensions or use full image
+      const srcX = cropArea?.x ?? 0;
+      const srcY = cropArea?.y ?? 0;
+      const srcWidth = cropArea?.width ?? img.width;
+      const srcHeight = cropArea?.height ?? img.height;
+      
+      // Use A4 aspect ratio for output (210:297)
+      const a4Ratio = 210 / 297;
+      let destWidth = srcWidth;
+      let destHeight = srcHeight;
+      
+      // Adjust to maintain reasonable size (max 1200px width)
+      if (destWidth > 1200) {
+        destWidth = 1200;
+        destHeight = destWidth / (srcWidth / srcHeight);
+      }
+      
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = destWidth;
+      canvas.height = destHeight;
       const ctx = canvas.getContext("2d")!;
 
-      // Draw original image
-      ctx.drawImage(img, 0, 0, width, height);
+      // Draw cropped region
+      ctx.drawImage(
+        img, 
+        srcX, srcY, srcWidth, srcHeight,  // Source rectangle
+        0, 0, destWidth, destHeight       // Destination rectangle
+      );
 
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const data = imageData.data;
+      // Get image data for processing
+      const canvasData = ctx.getImageData(0, 0, destWidth, destHeight);
+      const data = canvasData.data;
 
       // Process each pixel: Grayscale + Contrast enhancement
       for (let i = 0; i < data.length; i += 4) {
         // Convert to grayscale
         const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
         
-        // Apply contrast enhancement (factor 1.3)
-        const factor = 1.3;
+        // Apply contrast enhancement (factor 1.4 for document clarity)
+        const factor = 1.4;
         const enhanced = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
         
-        // Apply sharpening by detecting edges (simple unsharp mask simulation)
-        // For simplicity, we'll just enhance contrast here
         data[i] = enhanced;     // R
         data[i + 1] = enhanced; // G
         data[i + 2] = enhanced; // B
@@ -55,7 +73,7 @@ const processImage = async (
       }
 
       // Put processed data back
-      ctx.putImageData(imageData, 0, 0);
+      ctx.putImageData(canvasData, 0, 0);
 
       resolve(canvas.toDataURL("image/jpeg", 0.85));
     };
@@ -272,17 +290,33 @@ export default function DocumentScanner({
       const imageSrc = webcamRef.current.getScreenshot();
       
       if (imageSrc) {
-        // Process image: crop, grayscale, enhance
-        let processedImage = imageSrc;
+        let processedImage: string;
         
-        // If corners detected, we could crop here (simplified for now)
-        // For now just process the full image
-        const img = new Image();
-        img.src = imageSrc;
-        await new Promise((resolve) => { img.onload = resolve; });
+        // Get video dimensions for coordinate scaling
+        const video = webcamRef.current.video;
         
-        // Apply grayscale and enhancement
-        processedImage = await processImage(imageSrc, img.width, img.height);
+        // If document detected with corners, crop to document
+        if (documentDetected && corners.length === 4 && video) {
+          // Calculate crop area from corners
+          // Corners are in video coordinates, screenshot is at video resolution
+          const minX = Math.min(corners[0].x, corners[3].x);
+          const maxX = Math.max(corners[1].x, corners[2].x);
+          const minY = Math.min(corners[0].y, corners[1].y);
+          const maxY = Math.max(corners[2].y, corners[3].y);
+          
+          const cropArea = {
+            x: Math.max(0, minX),
+            y: Math.max(0, minY),
+            width: maxX - minX,
+            height: maxY - minY,
+          };
+          
+          // Process with crop
+          processedImage = await processImage(imageSrc, cropArea);
+        } else {
+          // No detection - process full image
+          processedImage = await processImage(imageSrc);
+        }
         
         const newPage: ScannedPage = {
           id: Date.now().toString(),
@@ -298,7 +332,7 @@ export default function DocumentScanner({
       }
       setScanning(false);
     }
-  }, [scanMode]);
+  }, [scanMode, documentDetected, corners]);
 
   const deletePage = (id: string) => {
     setPages((prev) => prev.filter((p) => p.id !== id));
