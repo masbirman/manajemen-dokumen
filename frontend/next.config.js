@@ -15,31 +15,31 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://nginx:80/api/:path*',
+        destination: 'http://docscanner-backend:8000/api/:path*',
       },
       {
         source: '/auto-login',
-        destination: 'http://nginx:80/auto-login',
+        destination: 'http://docscanner-backend:8000/auto-login',
       },
       {
         source: '/admin/:path*',
-        destination: 'http://nginx:80/admin/:path*',
+        destination: 'http://docscanner-backend:8000/admin/:path*',
       },
       {
         source: '/admin',
-        destination: 'http://nginx:80/admin',
+        destination: 'http://docscanner-backend:8000/admin',
       },
       {
         source: '/storage/:path*',
-        destination: 'http://nginx:80/storage/:path*',
+        destination: 'http://docscanner-backend:8000/storage/:path*',
       },
       {
         source: '/sanctum/:path*',
-        destination: 'http://nginx:80/sanctum/:path*',
+        destination: 'http://docscanner-backend:8000/sanctum/:path*',
       },
       {
         source: '/livewire/:path*',
-        destination: 'http://nginx:80/livewire/:path*',
+        destination: 'http://docscanner-backend:8000/livewire/:path*',
       },
     ];
   },
